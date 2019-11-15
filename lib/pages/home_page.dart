@@ -1,8 +1,30 @@
 import 'dart:ui' as prefix0;
 import 'package:flutter/material.dart';
+import 'package:flutter_gas/network/get_image.dart';
 import 'package:flutter_gas/pages/config_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  String imageUrl = "";
+  String sentence = "";
+  String author = "";
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    RequestImage().getImage().then((value) {
+      setState(() {
+        imageUrl = value;
+      });
+    });
+    
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -28,10 +50,15 @@ class HomePage extends StatelessWidget {
     return Container(
       color: Colors.blue,
       height: 400,
-      child: Image.network(
-        'https://cn.bing.com/th?id=OHR.BerlinerMauerFall_ZH-CN1154604596_1920x1080.jpg&rf=LaDigue_1920x1080.jpg&pid=hp',
-        fit: BoxFit.cover,
-      ),
+      child: imageUrl != ""
+          ? Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+            )
+          : Image.asset(
+              "images/th.jpg",
+              fit: BoxFit.cover,
+            ),
     );
   }
 
@@ -49,9 +76,8 @@ class HomePage extends StatelessWidget {
                   ),
                   onPressed: () {
                     Navigator.of(context).push(MaterialPageRoute(
-                      builder: (BuildContext context) => ConfigPage()));
-                  }
-              ),
+                        builder: (BuildContext context) => ConfigPage()));
+                  }),
             )));
   }
 
@@ -76,7 +102,7 @@ class HomePage extends StatelessWidget {
       child: Column(
         children: <Widget>[
           Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-            customItem("images/co2.png", Colors.purple, 40, 5, 10, "10 ppm", 20,
+            customItem("images/co2.png", Colors.green, 40, 5, 10, "10 ppm", 20,
                 Colors.grey, "二氧化碳", 15, Colors.grey),
             Padding(padding: EdgeInsets.symmetric(horizontal: 40)),
             customItem("images/温度.png", Colors.orange, 40, 5, 10, "10 ℃", 20,
@@ -94,7 +120,7 @@ class HomePage extends StatelessWidget {
             ),
           ),
           Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-            customItem("images/co2.png", Colors.purple, 40, 5, 10, "10 ppm", 20,
+            customItem("images/co2.png", Colors.green, 40, 5, 10, "10 ppm", 20,
                 Colors.grey, "二氧化碳", 15, Colors.grey),
             Padding(padding: EdgeInsets.symmetric(horizontal: 40)),
             customItem("images/温度.png", Colors.orange, 40, 5, 10, "10 ℃", 20,
