@@ -7,9 +7,10 @@ class GetSentence {
 	Future getSentence() async {
 		try {
 			Response response = await Dio().get(url);
-			sentence = response.data["data"]["content_list"]["forward"];
-			author = response.data["data"]["content_list"]["words_info"];
-			return "{\"sentence\": $sentence, \"author\": $author}";
+			sentence = response.data["data"]["content_list"][0]["forward"];
+			author = response.data["data"]["content_list"][0]["words_info"];
+			Map<String, dynamic> data = {"sentence": sentence, "author": author} ;
+			return data;
 		} catch (e) {
 			print(e);
 		}
