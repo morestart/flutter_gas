@@ -1,6 +1,7 @@
 import 'dart:ui' as prefix0;
 import 'package:flutter/material.dart';
 import 'package:flutter_gas/network/get_image.dart';
+import 'package:flutter_gas/network/get_one_sentence.dart';
 import 'package:flutter_gas/pages/config_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -22,28 +23,40 @@ class _HomePageState extends State<HomePage> {
         imageUrl = value;
       });
     });
-    
+    GetSentence().getSentence().then((value) {
+      print(value);
+      setState(() {
+        sentence = value["sentence"];
+        author = value["author"];
+      });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: <Widget>[
-          ClipPath(
-              clipper: BottonClipper(),
-              child: Stack(
-                children: <Widget>[
-                  bgImage(),
-                  appBar(context),
-                  showSentence(),
-                ],
-              )),
-          Padding(padding: EdgeInsets.symmetric(vertical: 20)),
-          showContent()
-        ],
-      ),
-    );
+        body: MediaQuery.removePadding(
+            context: context,
+            removeTop: true,
+            child: ListView(
+              children: <Widget>[
+                Column(
+                  children: <Widget>[
+                    ClipPath(
+                        clipper: BottonClipper(),
+                        child: Stack(
+                          children: <Widget>[
+                            bgImage(),
+                            appBar(context),
+                            showSentence(),
+                          ],
+                        )),
+                    Padding(padding: EdgeInsets.symmetric(vertical: 20)),
+                    showContent()
+                  ],
+                ),
+              ],
+            )));
   }
 
   Widget bgImage() {
@@ -65,7 +78,7 @@ class _HomePageState extends State<HomePage> {
   Widget appBar(BuildContext context) {
     return SafeArea(
         child: Container(
-            height: 50,
+            height: MediaQuery.of(context).padding.top * 3,
             width: prefix0.window.physicalSize.width,
             child: Container(
               alignment: Alignment.bottomRight,
@@ -82,16 +95,25 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget showSentence() {
-    return Container(
-      height: 400,
-      alignment: Alignment.center,
-      child: Center(
-        child: Text(
-          '每日一句的位置',
-          style: TextStyle(
-              fontSize: 30, fontFamily: 'Bubian', color: Colors.white),
+    return Column(
+      children: <Widget>[
+        Container(
+          margin: EdgeInsets.only(top: 150),
+          alignment: Alignment.center,
+          child: Center(
+            child: Text(
+              sentence,
+              style: TextStyle(
+                  fontSize: 30, fontFamily: 'Bubian', color: Colors.white),
+            ),
+          ),
         ),
-      ),
+        Text(
+          author,
+          style: TextStyle(
+              fontSize: 20, fontFamily: 'Bubian', color: Colors.white),
+        ),
+      ],
     );
   }
 
