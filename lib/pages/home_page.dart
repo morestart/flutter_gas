@@ -1,8 +1,13 @@
+import 'dart:async';
+import 'dart:math';
 import 'dart:ui' as prefix0;
 import 'package:flutter/material.dart';
 import 'package:flutter_gas/network/get_image.dart';
 import 'package:flutter_gas/network/get_one_sentence.dart';
 import 'package:flutter_gas/pages/config_page.dart';
+import 'package:mqtt_client/mqtt_client.dart';
+import 'dart:convert';
+
 
 class HomePage extends StatefulWidget {
   @override
@@ -13,10 +18,102 @@ class _HomePageState extends State<HomePage> {
   String imageUrl = "";
   String sentence = "";
   String author = "";
+  int co2 = 0;
+  int hum = 0;
+  int tem = 0;
+
+  String broker = "35.185.152.124";
+  String userName = "ctl";
+  String passWord = "997103";
+  String clientIdentifier = Random(1).toString();
+
+  MqttClient client;
+  MqttClientConnectionStatus clientConnectionStatus;
+  StreamSubscription subscription;
+
+  void _connect() async {
+    client = MqttClient(broker, '');
+    client.port = 1883;
+    client.keepAlivePeriod = 30;
+    client.onDisconnected = _onDisconnected;
+
+    final MqttConnectMessage connectMessage = MqttConnectMessage()
+      .withClientIdentifier(clientIdentifier)
+    .startClean()
+    .keepAliveFor(30)
+    .withWillQos(MqttQos.atMostOnce);
+    client.connectionMessage = connectMessage;
+
+    try {
+      await client.connect(userName, passWord);
+    } catch (e) {
+      print(e);
+      _disconnect();
+    }
+
+    if (client.connectionStatus.state == MqttConnectionState.connected) {
+      print('EXAMPLE::Mosquitto client connected');
+    } else {
+      /// Use status here rather than state if you also want the broker return code.
+      print(
+          'EXAMPLE::ERROR Mosquitto client connection failed - disconnecting, status is ${client.connectionStatus}');
+      client.disconnect();
+    }
+    subscription = client.updates.listen(_onMessage);
+//    TODO: 订阅
+    const String topic = 'classroomSensorData'; // Not a wildcard topic
+    client.subscribe(topic, MqttQos.atMostOnce);
+    client.subscribe("classroomSensor/available", MqttQos.atMostOnce);
+  }
+
+  void _disconnect() {
+    print('[MQTT client] _disconnect()');
+    client.disconnect();
+    _onDisconnected();
+    _connect();
+  }
+
+  void _onDisconnected() {
+    print('[MQTT client] _onDisconnected');
+    setState(() {
+      //topics.clear();
+      client = null;
+      subscription.cancel();
+      subscription = null;
+    });
+    print('[MQTT client] MQTT client disconnected');
+  }
+
+  void _onMessage(List<MqttReceivedMessage> event) {
+    print(event.length);
+    final MqttPublishMessage recMess =
+    event[0].payload as MqttPublishMessage;
+    final String message =
+    MqttPublishPayload.bytesToStringAsString(recMess.payload.message);
+
+    /// The above may seem a little convoluted for users only interested in the
+    /// payload, some users however may be interested in the received publish message,
+    /// lets not constrain ourselves yet until the package has been in the wild
+    /// for a while.
+    /// The payload is a byte buffer, this will be specific to the topic
+//    print('[MQTT client] MQTT message: topic is <${event[0].topic}>, '
+//        'payload is <-- ${message} -->');
+//    print("[MQTT client] message with topic: ${event[0].topic}");
+//    print("[MQTT client] message with message: ${message}");
+    if (event[0].topic == "classroomSensorData") {
+      print(message.runtimeType);
+      Map<String, dynamic> jsonMap = json.decode(message);
+      setState(() {
+        co2 = jsonMap["co2"];
+        hum = jsonMap["hum"];
+        tem = jsonMap["tem"];
+      });
+  }
+
+  }
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     RequestImage().getImage().then((value) {
       setState(() {
@@ -30,6 +127,7 @@ class _HomePageState extends State<HomePage> {
         author = value["author"];
       });
     });
+    _connect();
   }
 
   @override
@@ -124,13 +222,13 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         children: <Widget>[
           Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-            customItem("images/co2.png", Colors.green, 40, 5, 10, "10 ppm", 20,
+            customItem("images/co2.png", Colors.green, 40, 5, 10, "$co2", 20,
                 Colors.grey, "二氧化碳", 15, Colors.grey),
             Padding(padding: EdgeInsets.symmetric(horizontal: 40)),
-            customItem("images/温度.png", Colors.orange, 40, 5, 10, "10 ℃", 20,
+            customItem("images/温度.png", Colors.orange, 40, 5, 10, "$tem℃", 20,
                 Colors.grey, "温度", 15, Colors.grey),
             Padding(padding: EdgeInsets.symmetric(horizontal: 40)),
-            customItem("images/湿度.png", Colors.blue, 40, 5, 10, "10 %Rh", 20,
+            customItem("images/湿度.png", Colors.blue, 40, 5, 10, "$hum%Rh", 20,
                 Colors.grey, "湿度", 15, Colors.grey)
           ]),
           Padding(
@@ -187,7 +285,10 @@ class _HomePageState extends State<HomePage> {
       ],
     );
   }
+
+
 }
+
 
 class BottonClipper extends CustomClipper<Path> {
   @override
